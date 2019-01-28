@@ -1,0 +1,65 @@
+#!/usr/bin/Rscript
+library(ggmap)
+library("ggplot2")
+library(jpeg)
+deg2rad <- function(deg) {(deg * pi) / (180)}
+
+dir <- "~/planes_radar/"
+setwd(dir)
+
+dat <- read.table("test.log",header = F,sep = ",")
+names(dat) <- c("type", "n", "X1", "X2", "flight",
+                "X3", "X4", "X5", "X6", "X7", "X8",
+                "alt", "speed", "heading", "lat", "lon",
+                "vertical", "X9", "X10", "X11", "X12", "X13")
+dat <- data.frame(dat$flight, dat$alt, dat$speed, dat$heading,
+                  dat$lat, dat$lon, dat$vertical)
+
+big.means <- data.frame()
+for(f in unique(dat$dat.flight)){
+  print(f)
+  df <- dat[dat$dat.flight == f,]
+  df.alt <- mean(na.omit(df$dat.alt))
+  df.speed <- mean(na.omit(df$dat.speed))
+  df.hdg <- mean(na.omit(df$dat.heading))
+  df.lat <- mean(na.omit(df$dat.lat))
+  if(is.nan(unique(df.lat))){
+    next
+  }
+  df.lon <- mean(na.omit(df$dat.lon))
+  if(is.nan(unique(df.lon))){
+    next
+  }
+  df.vert <- mean(na.omit(df$dat.vertical))
+  means.df <- data.frame(f, df.alt, df.speed, df.hdg, df.lat, df.lon, df.vert)
+  big.means <- rbind(means.df, big.means)
+}
+
+#coords <- c(left = 35.812683, bottom = 54.557730, right = 38.836670,top = 55.624895)
+#map <- get_stamenmap(bbox = coords, zoom = 10, maptype = "terrain-lines")
+map <- readRDS("map.RDS")
+names(big.means) <- c("id", "alt", "speed", "hdg", "lat", "lon", "vert")
+
+text(x = 0.5, y = 0.5, paste("The following is text that'll appear in a plot window.\n",
+                             "As you can see, it's in the plot window\n",
+                             "One might imagine useful informaiton here"), 
+     cex = 1.6, col = "black")
+
+png("~/bgnd.png",width = 800,height = 600,units = "px")
+ggmap(map) + geom_point(data = big.means, aes(x = lon, y = lat)) + 
+                           geom_text(data = big.means, aes(x = lon, y = lat, label = paste(id, "\n", 
+                                                                         "Alt: ", round(alt,0), "\n",
+                                                                         "Speed: ", round(speed,0), "\n",
+                                                                         "Vert: ", round(vert,0),
+                                                                         sep = "")),
+                                                                         hjust = 1.1, vjust = 1.1,size = 3) + 
+                          geom_spoke(data = big.means, aes(x = lon, y = lat, angle = hdg),radius = 0.08) + 
+                                                                      theme(axis.line=element_blank(),axis.text.x=element_blank(),
+                                                                      axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                                                      axis.title.x=element_blank(),
+                                                                      axis.title.y=element_blank(),legend.position="none",
+                                                                      panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
+                                                                      panel.grid.minor=element_blank(),plot.background=element_blank()) + 
+                          ggtitle(Sys.time())
+dev.off()
+big.means

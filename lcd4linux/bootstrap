@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# $Id: bootstrap 1044 2009-09-23 04:34:38Z michael $
+# $URL: https://ssl.bulix.org/svn/lcd4linux/trunk/bootstrap $
+
+# exit on errors
+set -e
+
+# set nicer prompt for tracing
+PS4="$0:\$LINENO> "
+set -x
+
+aclocal
+libtoolize --copy --force 
+autoheader
+automake --add-missing --copy --foreign 
+autoconf
+
